@@ -1,10 +1,11 @@
+import uuid
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlmodel import Session
 
 from app.core.database import get_session
 from app.core.security import decode_access_token
-from app.models import User
+from app.models import User, Chat
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -31,3 +32,14 @@ def get_current_user(
         raise unauthorized
 
     return user
+
+
+def get_owned_chat(
+    chat_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> Chat:
+    chat = session.get(Chat, chat_id)
+    if chat is None or chat.user_id != user.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Chat not found.")
+    return chat

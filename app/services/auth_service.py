@@ -11,6 +11,8 @@ from app.models import RefreshToken, User
 from app.models.base import utcnow
 from app.schemas.auth import TokenPair, TokenResponse, UserOut
 from app.services import otp_service
+from app.models import Attachment, RefreshToken, User
+from app.services import otp_service, storage_service
 
 
 def _issue_refresh_token(session: Session, user_id: uuid.UUID) -> str:
@@ -98,3 +100,14 @@ def logout(session: Session, refresh_token: str) -> None:
     if row and row.revoked_at is None:
         row.revoked_at = utcnow()
         session.commit()
+
+
+def delete_account(session: Session, user: User) -> None:
+    keys = list(session.exec(
+        select(Attachment.storage_key).where(Attachment.user_id == user.id)
+    ).all())
+
+    session.delete(user)       # cascade: tokens, chats, messages, attachments
+    session.commit()
+
+    storage_service.delete_quietly(keys)

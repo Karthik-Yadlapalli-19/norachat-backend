@@ -1,0 +1,364 @@
+{
+  "info": {
+    "_postman_id": "5c0e7a52-3f4b-4d8e-9a61-2b7f0c9d4e13",
+    "name": "NoraChat Chats",
+    "description": "Chat and message endpoints for NoraChat. Run the Login folder first (Request OTP, then Verify OTP with otpCode set) to populate accessToken. Create Chat stores the new chat's ID in chatId, which the other requests use. All chat requests inherit bearer auth from the collection.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Login",
+      "description": "Minimal login flow so this collection can obtain its own tokens.",
+      "item": [
+        {
+          "name": "Request OTP",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/otp/request",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "otp",
+                "request"
+              ]
+            },
+            "description": "Sends a six-digit verification code to the supplied email address."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify OTP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('OTP verification succeeds', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  const data = pm.response.json();",
+                  "  pm.collectionVariables.set('accessToken', data.access_token);",
+                  "  pm.collectionVariables.set('refreshToken', data.refresh_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"code\": \"{{otpCode}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/otp/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "otp",
+                "verify"
+              ]
+            },
+            "description": "Verifies the emailed code and stores accessToken and refreshToken for the chat requests. Set otpCode to the code received by email."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "List Chats",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/chats",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "chats"
+          ]
+        },
+        "description": "Returns all chats owned by the authenticated user: pinned chats first (newest pin on top), then by most recent activity."
+      },
+      "response": []
+    },
+    {
+      "name": "Create Chat",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Chat is created', function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "if (pm.response.code === 201) {",
+              "  pm.collectionVariables.set('chatId', pm.response.json().id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"My first chat\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/chats",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "chats"
+          ]
+        },
+        "description": "Creates a chat. title is optional (1-200 characters); send {} to default to \"New chat\". The test script stores the new chat's ID in chatId."
+      },
+      "response": []
+    },
+    {
+      "name": "Get Chat",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/chats/{{chatId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "chats",
+            "{{chatId}}"
+          ]
+        },
+        "description": "Returns a single chat owned by the authenticated user."
+      },
+      "response": []
+    },
+    {
+      "name": "Update Chat",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Renamed chat\",\n  \"pinned\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/chats/{{chatId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "chats",
+            "{{chatId}}"
+          ]
+        },
+        "description": "Renames and/or pins the chat. Both fields are optional; pinned true sets pinned_at, false clears it."
+      },
+      "response": []
+    },
+    {
+      "name": "List Messages",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/chats/{{chatId}}/messages?limit=50",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "chats",
+            "{{chatId}}",
+            "messages"
+          ],
+          "query": [
+            {
+              "key": "limit",
+              "value": "50",
+              "description": "Page size, 1-100 (default 50)."
+            },
+            {
+              "key": "before",
+              "value": "{{messagesBefore}}",
+              "description": "ISO 8601 timestamp; returns messages older than this. Enable to load the previous page (use created_at of the oldest message you have).",
+              "disabled": true
+            }
+          ]
+        },
+        "description": "Returns a page of messages ordered oldest to newest, plus has_more indicating whether older messages exist."
+      },
+      "response": []
+    },
+    {
+      "name": "Send Message",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Hello, Nora!\",\n  \"id\": \"{{$guid}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/chats/{{chatId}}/messages",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "chats",
+            "{{chatId}}",
+            "messages"
+          ]
+        },
+        "description": "Saves the user's message (content 1-8000 characters; id is an optional client-generated UUID) and streams the assistant's reply as newline-delimited JSON (application/x-ndjson)."
+      },
+      "response": []
+    },
+    {
+      "name": "Delete Chat",
+      "request": {
+        "method": "DELETE",
+        "url": {
+          "raw": "{{baseUrl}}/api/chats/{{chatId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "chats",
+            "{{chatId}}"
+          ]
+        },
+        "description": "Permanently deletes the chat and its messages. Returns 204 with no response body."
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "email",
+      "value": "you@example.com",
+      "type": "string"
+    },
+    {
+      "key": "otpCode",
+      "value": "000000",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "chatId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "messagesBefore",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

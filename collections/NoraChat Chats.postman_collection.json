@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "5c0e7a52-3f4b-4d8e-9a61-2b7f0c9d4e13",
     "name": "NoraChat Chats",
-    "description": "Chat and message endpoints for NoraChat. Run the Login folder first (Request OTP, then Verify OTP with otpCode set) to populate accessToken. Create Chat stores the new chat's ID in chatId, which the other requests use. All chat requests inherit bearer auth from the collection.",
+    "description": "Chat, message, and attachment endpoints for NoraChat. Run the Login folder first (Request OTP, then Verify OTP with otpCode set) to populate accessToken. Create Chat stores the new chat's ID in chatId, which the other requests use. To send a file, run Upload Attachment (stores attachmentId), then Send Message with Attachments. All chat requests inherit bearer auth from the collection.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -265,7 +265,7 @@
             }
           ]
         },
-        "description": "Returns a page of messages ordered oldest to newest, plus has_more indicating whether older messages exist."
+        "description": "Returns a page of messages ordered oldest to newest, plus has_more indicating whether older messages exist. Each message includes its attachments, with signed URLs valid for 1 hour."
       },
       "response": []
     },
@@ -300,7 +300,90 @@
             "messages"
           ]
         },
-        "description": "Saves the user's message (content 1-8000 characters; id is an optional client-generated UUID) and streams the assistant's reply as newline-delimited JSON (application/x-ndjson)."
+        "description": "Saves the user's message (content 1-8000 characters; id is an optional client-generated UUID; attachment_ids is optional, see Send Message with Attachments) and streams the assistant's reply as newline-delimited JSON (application/x-ndjson)."
+      },
+      "response": []
+    },
+    {
+      "name": "Upload Attachment",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Attachment is uploaded', function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "if (pm.response.code === 201) {",
+              "  pm.collectionVariables.set('attachmentId', pm.response.json().id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": [],
+              "description": "Choose a file: PDF, DOCX, TXT, MD, JPG, PNG, WEBP, or HEIC, up to 20 MB."
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/chats/{{chatId}}/attachments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "chats",
+            "{{chatId}}",
+            "attachments"
+          ]
+        },
+        "description": "Uploads a file to the chat as multipart/form-data (field name: file). Allowed types: PDF, DOCX, TXT, MD, JPG, PNG, WEBP, HEIC; max 20 MB. Documents have their text extracted (has_text true); scanned PDFs and documents over ~60,000 characters are rejected with 422. Returns the attachment with a signed URL valid for 1 hour. The test script stores its ID in attachmentId. The attachment is not part of the conversation until its ID is passed in attachment_ids when sending a message."
+      },
+      "response": []
+    },
+    {
+      "name": "Send Message with Attachments",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"What is in this file?\",\n  \"id\": \"{{$guid}}\",\n  \"attachment_ids\": [\"{{attachmentId}}\"]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/chats/{{chatId}}/messages",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "chats",
+            "{{chatId}}",
+            "messages"
+          ]
+        },
+        "description": "Sends a message that references previously uploaded attachments (up to 5 IDs). Each attachment must belong to this chat and can be used only once; otherwise the request fails with 400. Image attachments route the reply to the vision model when one is configured. The reply streams as newline-delimited JSON (application/x-ndjson)."
       },
       "response": []
     },
@@ -319,7 +402,7 @@
             "{{chatId}}"
           ]
         },
-        "description": "Permanently deletes the chat and its messages. Returns 204 with no response body."
+        "description": "Permanently deletes the chat with its messages and attachments. Returns 204 with no response body."
       },
       "response": []
     }
@@ -357,6 +440,11 @@
     },
     {
       "key": "messagesBefore",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "attachmentId",
       "value": "",
       "type": "string"
     }

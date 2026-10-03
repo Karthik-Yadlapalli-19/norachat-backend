@@ -174,7 +174,7 @@ async def stream_reply(chat_id: uuid.UUID, history: list[dict], model: str) -> A
             chat_id=chat_id,
             role=MessageRole.assistant,
             content=reply,
-            model=settings.ollama_model,
+            model=model,
             eval_count=eval_count,
         )
         session.add(message)

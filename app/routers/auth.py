@@ -75,13 +75,4 @@ def delete_me(
     user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
-    session.delete(user)
-    session.commit()
-
-
-@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
-def delete_me(
-    user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
-):
     auth_service.delete_account(session, user)

@@ -280,7 +280,7 @@
             "me"
           ]
         },
-        "description": "Permanently deletes the authenticated user's account. Returns 204 with no response body."
+        "description": "Permanently deletes the authenticated user's account, including their chats, messages, and uploaded attachment files. Returns 204 with no response body."
       },
       "response": []
     }

@@ -4,6 +4,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, status, Query, UploadFile, File
 from sqlmodel import Session
 
+from app.core.config import settings
 from app.core.database import get_session
 from app.deps import get_current_user, get_owned_chat
 from app.models import Chat, User
